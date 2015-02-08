@@ -1,23 +1,23 @@
 var assert = require('assert');
-var spawn = require('child_process').spawn;
-var exec = require('child_process').exec;
 var should = require('should');
 var fs = require('fs') ;
 var merge = require('merge') ;
 var drachtio = require('drachtio-client') ;
 var fixtures = require('drachtio-test-fixtures') ;
 var config = fixtures.localConfig;
+var debug = require('debug')('drachtio:connect') ;
 var localAgent;
 var remoteAgent;
 
 var noop = function(req,res){} ;
 
-describe('response time middleware', function() {
+describe('invite non-success final response', function() {
     this.timeout(3000) ;
 
     before(function(done){
+        debug('mocked remote config: ', fixtures.remoteConfig) ;
         var mockedConfig = merge({status: 486}, fixtures.remoteConfig) ;
-       remoteAgent = require('../examples/logger/app')(mockedConfig) ;
+       remoteAgent = require('../examples/invite-non-success/app')(mockedConfig) ;
         remoteAgent.on('connect', function() {
             localAgent = drachtio.Agent(noop) ;
             localAgent.set('api logger',fs.createWriteStream(config.apiLog) ) ;
@@ -32,7 +32,7 @@ describe('response time middleware', function() {
         done() ;
     }) ;
  
-    it('must set response time in a custom header', function(done) {
+    it('must be able to reject an INVITE', function(done) {
         localAgent.request({
             uri: config.request_uri,
             method: 'INVITE',
@@ -41,7 +41,6 @@ describe('response time middleware', function() {
             should.not.exist(err) ;
             req.on('response', function(res){
                 res.should.have.property('status',486); 
-                res.get('X-Response-Time').should.exist;
                 localAgent.idle.should.be.true ;
                 remoteAgent.idle.should.be.true ;
                 done() ;
