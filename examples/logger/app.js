@@ -13,19 +13,19 @@ module.exports = function( config ) {
 	agent.connect(config.connect_opts) ;
 	agent.route('invite') ;
 
-	app.use('*', function( req, res, next){
+	app.use( 'invite', function( req, res, next){
 		 var startAt = process.hrtime() ;
 
 		 onSend( res, function() {
 			var diff = process.hrtime(startAt) ;
 			var ms = diff[0] * 1e3 + diff[1] * 1e-6 ;
-			var val = ms.toFixed(3) + ' ms' ;
+			var val = ms.toFixed(3) + 'ms' ;
 			this.set('X-Response-Time', val) ;
 		 }) ;
 
 		 next() ;
 	}) ;
-	app.use('*', function(req, res){
+	app.invite(function(req, res){
 		res.send(486) ;
 	}) ;
 

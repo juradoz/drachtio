@@ -12,9 +12,6 @@ module.exports = function( config ) {
 	agent.connect(config.connect_opts) ;
 	agent.route('invite') ;
 
-	//app.use('invite', function( req, res, next){
-	//	res.send(486); 
-	//}) ;
 	app.invite( function testInvite(req) {
 		return req.method === 'INVITE' ;
 	}, function( req, res, next){
