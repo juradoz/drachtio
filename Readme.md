@@ -8,7 +8,7 @@
 
 [![drachtio logo](http://www.dracht.io/images/definition_only-cropped.png)](http://dracht.io/)
 
-[drachtio](http://dracht.io/) is Node.js connect-style application middleware for [SIP](www.ietf.) applications.
+drachtio is [connect](https://github.com/senchalabs/connect)-inspired middleware for [SIP](https://www.ietf.org/rfc/rfc3261.txt) applications.
 
 It is designed to make it easy for developers to incorporate SIP-based voice and data features into Node.js applications through the use of familiar middleware patterns. 
 
@@ -44,9 +44,9 @@ app.invite( function( req, res ) {
 }) ;
 ```
 
-The drachtio middleware framework does not itself contain a SIP stack - the network processing of SIP messages is performed by [drachtio-server](https://github.com/davehorton/drachtio-server), an instance of which must be running on a network-accessible server. drachtio-server is a high-performance, programmable SIP user agent that is built on top of the open-source [sofia]() SIP stack
+The drachtio middleware framework does not itself contain a SIP stack - the network processing of SIP messages is performed by [drachtio-server](https://github.com/davehorton/drachtio-server), an instance of which must be running on a network-accessible server. drachtio-server is a high-performance, programmable SIP user agent written in C++ that is built on top of the open-source [sofia](https://github.com/davehorton/sofia-sip) SIP stack
 
-drachtio also has a dependency on [drachtio-client](https://github.com/davehorton/drachtio-client), which is a Node.js library that manages a TCP connection to a drachtio server.  Commands to control the drachtio server are sent over this socket, and messages received and other events are transmitted back to the client. 
+drachtio also has a dependency on [drachtio-client](https://github.com/davehorton/drachtio-client), which is a Node.js library that manages a TCP connection to a drachtio server and provides SIP message parsing and other features.  Commands to control the drachtio server are sent over this socket, and messages received and other events are transmitted back to the client. 
 
 ## Getting started
 ### Creating an application
@@ -98,12 +98,15 @@ app.register( function( req, res ) {
 
 > + A 'Content-Type' header of 'application/sdp' will automatically be added by drachtio-server, where appropriate.  When sending any other content types, an application must explicitly include a 'Content-Type' header.
 
+> + Request and Response objects both support a `get` method to return the value of a named SIP header as a string value, and `getParsedHeader` to return object that represents the SIP header parsed into its component values.
+
+
 #### res#send
 The `res.send` method can take up to four arguments: `(code, reason, opts, callback)`:
-- `code` is required and is the numeric SIP response value.
-- `reason` is optional and is a custom status text value that will appear in the SIP response line; if not provided the well-known reason that is associated with the provided code will be used.
-- `opts` is optional and is a javascript object containing values that control the generation of the response; most notably a `body` property which provides a value for the body of the SIP response and a `headers` property which provides one or more SIP headers that will be populated in the response.
-- `callback` is an optional function that will be called once the SIP response message has actually been sent.  The callback will receive two arguments: `(err, response)`; the `err` value is an object describing an error (if any) that drachtio-server encountered in generating the SIP response, and the response object is a representation of the actual message that was sent over the wire. 
+- `code` is the only required parameter and is the numeric SIP response value.
+- `reason` is a custom status text value that will appear in the SIP response line; if not provided the well-known reason that is associated with the provided code will be used.
+- `opts` is a javascript object containing values that control the generation of the response; most notably a `body` property which provides a value for the body of the SIP response and a `headers` property which provides one or more SIP headers that will be populated in the response.
+- `callback` is a function that will be called once the SIP response message has actually been sent.  The callback will receive two arguments: `(err, response)`; the `err` value is an object describing an error (if any) that drachtio-server encountered in generating the SIP response, and the response object is a representation of the actual message that was sent over the wire. 
 
 > Note:
 > Most of the standard SIP headers in the response will be populated automatically by the drachtio server based on the associated request.  It is only necessary to populate those additional headers that you want to be carried in the response which the drachtio server would not know to populate.
@@ -145,6 +148,8 @@ app.connect({host:'localhost',port: 8022,secret: 'cymru'},
     }
 );
 ```
+> Note: as in the above example, an application can only call `app#send` after connecting to drachtio-server.  An attempt to send a request before a connection to the server has been established will result in an error being thrown.
+
 #### app#request
 The callback receives the arguments `(err, req)`, where `error` represents the error encountered (if any) attempting to send the request, and the `req` object represents the message that was actually sent over the wire.  
 
@@ -222,7 +227,7 @@ app.prack( function(req, res){
 Similiarly, if you want to send reliable provisional responses, just add a `Require: 100rel` header in your response, and drachtio-server will handle sending reliable provisional response for you.  
 
 ### SIP Proxy
-Creating a sip proxy application is easy: simply call `req#proxy` on the incoming request object.  The `proxy` function takes two parameters `(opts, callback`) as described below:
+Creating a sip proxy application is easy: simply call `req#proxy` on the incoming request object with an object parameter that provides instructions to drachtio server on how you want the proxy operation carried out.  The `proxy` function takes two parameters `(opts, callback`) as described below:
 
 ```js
 opts:
@@ -256,57 +261,4 @@ callback( err, response )
                     contains full details on all of the final responses
                     received from the forwarded request.
 ```
-An example of the response data provided to the response parameter in the `req#proxy` callback for the case where a single destination was provided and the far end responded with a non-success 404 Not Found response is as follows:
-```js
-{
-   "connected": false,  //final result -- was the call connected or not?
-   "responses": [       //all responses received from all destinations
-   {
-      "address": "192.168.100.129",
-      "port": 49579,
-      "msgs": [{
-         "time": "18:04:50.978089",
-         "status": 404,
-         "msg": {
-            "headers": {
-               "via": "SIP/2.0/UDP 192.168.100.129;received=192.168.100.129;branch=z9hG4bK8f3a59ee-172a-4015-81df-83408ed368d2,SIP/2.0/UDP 127.0.0.1:23524;rport=23524;branch=z9hG4bK-d8754z-251e3a6832e27b20-1---d8754z-",
-               "record-route": "<sip:192.168.100.129;lr>",
-               "call-id": "YzM1Yjc5NWQ3ZWU1OGNhMDlmMmJjYTg4Y2IxY2UyZjk",
-               "from": "\"Dave Horton\" <sip:1234@localhost>;tag=3be90e52",
-               "to": "<sip:11@localhost>;tag=lnhBHW.lHhQgcjcT1ehUJGvwAGZwfXGH",
-               "cseq": "1 INVITE",
-               "server": "Blink Pro 4.1.0 (MacOSX)",
-               "content-length": "0"
-            },
-            "body": "",
-            "version": "2.0",
-            "status": 404,
-            "reason": "Not Found",
-            "raw": "SIP/2.0 404 Not Found\r\nVia: SIP/2.0/UDP 192.168.100.129;received=192.168.100.129;branch=z9hG4bK8f3a59ee-172a-4015-81df-83408ed368d2\r\nVia: SIP/2.0/UDP 127.0.0.1:23524;rport=23524;branch=z9hG4bK-d8754z-251e3a6832e27b20-1---d8754z-\r\nRecord-Route: <sip:192.168.100.129;lr>\r\nCall-ID: YzM1Yjc5NWQ3ZWU1OGNhMDlmMmJjYTg4Y2IxY2UyZjk\r\nFrom: \"Dave Horton\" <sip:1234@localhost>;tag=3be90e52\r\nTo: <sip:11@localhost>;tag=lnhBHW.lHhQgcjcT1ehUJGvwAGZwfXGH\r\nCSeq: 1 INVITE\r\nServer: Blink Pro 4.1.0 (MacOSX)\r\nContent-Length:  0\r\n\r\n"
-         }
-      }]
-   },
-   "finalStatus": 404,           //final status forwarded upstream 
-   "finalResponse": {            //details of final response forwarded upstream
-      "time": "18:04:50.978089", //NB: all times UTC  
-      "status": 404,
-      "msg": {
-         "headers": {
-            "via": "SIP/2.0/UDP 192.168.100.129;received=192.168.100.129;branch=z9hG4bK8f3a59ee-172a-4015-81df-83408ed368d2,SIP/2.0/UDP 127.0.0.1:23524;rport=23524;branch=z9hG4bK-d8754z-251e3a6832e27b20-1---d8754z-",
-            "record-route": "<sip:192.168.100.129;lr>",
-            "call-id": "YzM1Yjc5NWQ3ZWU1OGNhMDlmMmJjYTg4Y2IxY2UyZjk",
-            "from": "\"Dave Horton\" <sip:1234@localhost>;tag=3be90e52",
-            "to": "<sip:11@localhost>;tag=lnhBHW.lHhQgcjcT1ehUJGvwAGZwfXGH",
-            "cseq": "1 INVITE",
-            "server": "Blink Pro 4.1.0 (MacOSX)",
-            "content-length": "0"
-         },
-         "body": "",
-         "version": "2.0",
-         "status": 404,
-         "reason": "Not Found",
-         "raw": "SIP/2.0 404 Not Found\r\nVia: SIP/2.0/UDP 192.168.100.129;received=192.168.100.129;branch=z9hG4bK8f3a59ee-172a-4015-81df-83408ed368d2\r\nVia: SIP/2.0/UDP 127.0.0.1:23524;rport=23524;branch=z9hG4bK-d8754z-251e3a6832e27b20-1---d8754z-\r\nRecord-Route: <sip:192.168.100.129;lr>\r\nCall-ID: YzM1Yjc5NWQ3ZWU1OGNhMDlmMmJjYTg4Y2IxY2UyZjk\r\nFrom: \"Dave Horton\" <sip:1234@localhost>;tag=3be90e52\r\nTo: <sip:11@localhost>;tag=lnhBHW.lHhQgcjcT1ehUJGvwAGZwfXGH\r\nCSeq: 1 INVITE\r\nServer: Blink Pro 4.1.0 (MacOSX)\r\nContent-Length:  0\r\n\r\n"
-      }
-   }
-}
-```
+An example of the response data provided to the response parameter in the `req#proxy` callback for the case where a single destination was provided and the far end responded with a non-success 404 Not Found response can be found [here](https://gist.github.com/davehorton/040f2b4eceb782e92ea2).
