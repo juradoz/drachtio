@@ -1,0 +1,12 @@
+cd ..
+git clone https://github.com/davehorton/drachtio-server
+cd drachtio-server
+sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
+git submodule update --init --recursive
+autoreconf -fvi 
+mkdir build
+cd build
+../configure
+make
+sudo make install
+cd ../../drachtio
