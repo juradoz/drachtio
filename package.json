@@ -19,11 +19,11 @@
   "devDependencies": {
     "should": ">= 2.0.2 < 3",
     "mocha": "~2.1.0",
-    "drachtio-client": "*",
+    "drachtio-client": "~0.1.0",
     "minimist": "^1.1.0",
     "merge": "^1.1.3",
     "async": "~0.9.0",
-    "drachtio-test-fixtures": "^0.0.2"
+    "drachtio-test-fixtures": "~0.1.0"
   },
   "licenses": [
     {
