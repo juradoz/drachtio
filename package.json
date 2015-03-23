@@ -13,6 +13,7 @@
     "debug": ">= 0.7.3 < 1",
     "sip-status": "*",
     "sip-methods": "*",
+    "delegates": "0.0.3",    
     "utils-merge": "1.0.0"
   },
   "devDependencies": {

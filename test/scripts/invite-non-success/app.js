@@ -1,5 +1,5 @@
-var connect = require('../..');
-var app = connect() ;
+var drachtio = require('../../..');
+var app = drachtio() ;
 var drachtio = require('drachtio-client') ;
 var agent = new drachtio.Agent( app ) ;
 var fs = require('fs') ;

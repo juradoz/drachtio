@@ -1,4 +1,4 @@
-var connect = require('../..');
+var connect = require('../../..');
 var app = connect() ;
 var drachtio = require('drachtio-client') ;
 var agent = new drachtio.Agent( app ) ;
