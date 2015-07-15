@@ -1,6 +1,6 @@
 {
   "name": "drachtio",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Simple connect-style middleware for drachtio sip applications",
   "keywords": [
     "framework",
