@@ -1,6 +1,6 @@
 {
   "name": "drachtio",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Simple connect-style middleware for drachtio sip applications",
   "keywords": [
     "framework",
@@ -10,7 +10,7 @@
     "connect"
   ],
   "dependencies": {
-    "drachtio-client": "^git+ssh://git@github.com:davehorton/drachtio-client.git#v0.2.2",
+    "drachtio-client": "^git+ssh://git@github.com:davehorton/drachtio-client.git#v0.2.1",
     "debug": ">= 0.7.3 < 1",
     "sip-status": "^0.1.0",
     "sip-methods": "^0.1.0",
