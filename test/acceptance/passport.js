@@ -25,11 +25,40 @@ describe('passport integration', function() {
         cfg.stopServers(done) ;
     }) ;
  
-    it.only('should work with passport digest authentication', function(done) {
+    it('should work with passport digest authentication', function(done) {
         var self = this ;
         var app = drachtio() ;
         configureUac( app, cfg.client[0] ) ;
         uas = require('../scripts/passport/app')(cfg.client[1]) ;
+        cfg.connectAll([app, uas], function(err){
+            if( err ) throw err ;
+            app.request({
+                uri: cfg.sipServer[1],
+                method: 'REGISTER',
+                headers: {
+                    To: 'sip:dhorton@sip.drachtio.org',
+                    From: 'sip:dhorton@sip.drachtio.org',
+                    Subject: self.test.fullTitle()
+                },
+                username: 'dhorton',
+                password: '1234'
+            }, function( err, req ) {
+                should.not.exist(err) ;
+                req.on('response', function(res){
+                    res.should.have.property('status',200); 
+
+                    //TODO: generate an Authorization header and retry
+                    app.idle.should.be.true ;
+                    done() ;
+                }) ;
+            }) ;
+        }) ;
+    }) ;    
+    it('should allow passport.authenticate function as app.register middleware', function(done) {
+        var self = this ;
+        var app = drachtio() ;
+        configureUac( app, cfg.client[0] ) ;
+        uas = require('../scripts/passport/app2')(cfg.client[1]) ;
         cfg.connectAll([app, uas], function(err){
             if( err ) throw err ;
             app.request({

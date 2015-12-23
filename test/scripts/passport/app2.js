@@ -1,19 +1,13 @@
-var drachtio = require('../');
-var app = drachtio() ;
+var drachtio = require('../../..') ;
+var fs = require('fs') ;
+var assert = require('assert') ;
+var debug = require('debug')('test:invite-success-uas-bye') ;
 var passport       = require('passport') ;
 var DigestStrategy = require('passport-http').DigestStrategy; 
 var registrationParser = require('drachtio-mw-registration-parser') ;
-var argv = require('minimist')(process.argv.slice(2));
-var debug = require('debug')('registrar') ;
-var realm = 'sip.drachtio.org'; 
 
-app.connect({
-  host: argv.host,
-  port: argv.port,
-  secret: argv.secret
-}) ;
 var users = [
-    { id: 1, username: 'dhorton', password: 'pass1234', domain: realm}
+    { id: 1, username: 'dhorton', password: '1234', domain: "sip.drachtio.org"}
 ];
 function findByUsername( username, fn )
 {
@@ -28,7 +22,7 @@ function findByUsername( username, fn )
 passport.use
 (
   new DigestStrategy(
-    { qop: 'auth', realm: realm },
+    { qop: 'auth', realm: 'sip.drachtio.org' },
     function( username, done )
     {
         // Find the user by username. If there is no user with the given username
@@ -52,7 +46,7 @@ passport.use
             function ()
             {
                 // check nonces in params here, if desired
-                debug('nonces sent: ', params );
+                debug('params from passport digest strategy second callback: ', params );
                 /*
                 nonce: 'MYto1vSuu6eK9PMNNYAqIdsmUXOA2ppU',
                 cnonce: 'MDA4NjY5',
@@ -65,20 +59,41 @@ passport.use
     }
 ));
 
-app.use(passport.initialize());
-app.use('register', registrationParser); 
-app.use('register', passport.authenticate('digest', { session: false })) ;
+module.exports = function( config ) {
 
-app.register(function(req, res) {
-  console.log('received an authenticated registration request: ', req.registration) ;
-  if( 'unregister' === req.registration.type ) {
-    res.send(200) ;
-  }
-  else {
-    res.send(200, {
-      headers: {
-        'Contact': '<' + req.registration.aor + '>;expires=' + req.registration.expires
-      }
-    }) ;
-  }
-});
+  var app = drachtio() ;
+  app.set('api logger',fs.createWriteStream(config.apiLog) ) ;
+
+  app.on('connect', function(){
+    app.client.locals = {
+      delay: config.answerDelay || 1,
+      reject_ceiling: config.allowCancel || 0,
+      dialogId: null, 
+      count: 0,
+      sdp: config.sdp
+    };     
+  }) ;
+
+  app.use(passport.initialize());
+
+  app.register( passport.authenticate('digest', { session: false }), registrationParser, function(req, res) {
+    if( 'unregister' === req.registration.type ) {
+      res.send(200) ;
+    }
+    else {
+      res.send(200, {
+        headers: {
+          'Contact': '<' + req.registration.aor + '>;expires=' + req.registration.expires
+        }
+      }) ;
+    }
+  }) ;
+
+  app.connect(config.connect_opts) ;
+
+  return app ;
+} ;
+
+
+
+
